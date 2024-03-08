@@ -8,6 +8,10 @@
 
 # User-specific files
 .Ruserdata
+.DS_Store
+
+# Big & unnecessary files and folders
+input/
 
 # Example code in package build process
 *-Ex.R
