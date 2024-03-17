@@ -12,6 +12,7 @@
 
 # Big & unnecessary files and folders
 input/
+figures/
 
 # Example code in package build process
 *-Ex.R
