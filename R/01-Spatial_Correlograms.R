@@ -11,17 +11,23 @@ nestdat <- read.csv('input/nestwatch_download_aug3_2023.csv')
 
 # 2 - Make list with all spatial correlograms from 2010-2019 ====
 
+# Species list
+species_list <- c('Purple Martin', 'Barn Swallow', 
+                  'Black-capped Chickadee', 'European Starling')
+
 corr_plots <- list()
-for(yr in 2010:2019) {
+for(yr in 2015:2019) {
   
-  # Get spatial correlograms
-  corr_pm <- spat_corr(nestdat = nestdat, 
+  for(spp in species_list) {
+    
+    # Get spatial correlograms
+  corr <- spat_corr(nestdat = nestdat, 
                        yr = yr, 
-                       species = 'Purple Martin',
+                       species = spp,
                        lagdist = 500,
                        iterations = 50)
   # Plot
-  plot_pm <- ggplot(corr_pm, aes(x = Distance, y = spatAutoCorr)) +
+  plot_corr <- ggplot(corr, aes(x = Distance, y = spatAutoCorr)) +
     scale_x_continuous(limits = c(0, 6000)) + 
     scale_y_continuous(limits=c(-1,1)) +
     geom_hline(yintercept = 0, linetype = 'dashed') +   
@@ -41,14 +47,28 @@ for(yr in 2010:2019) {
           panel.grid = element_line(linewidth = 0.5, colour = '#e5e5e5'),
           panel.border = element_rect(colour = 'black', fill = NA))
   # Add to list
-  corr_plots[[as.character(yr)]] <- plot_pm
+  corr_plots[[paste(spp, as.character(yr))]] <- plot_corr
+  }
   
 }
 
 # 3 - Construct panel plot ====
 
+# Make species plot titles in list
+title_list <- list()
+for(i in 1:length(species_list)) {
+  Spplab <- ggplot() + geom_text(aes(x = 0, y = 0), 
+                               label = species_list[i], 
+                               size = 6) + theme_void()
+  title_list[[i]] <- Spplab 
+}
+
+# Add titles to plots
+corr_plots_w_titles <- c(title_list, corr_plots)
+
 # Plot panels
-corr_panels <- plot_grid(plotlist = corr_plots, nrow = 2)
+corr_panels <- plot_grid(plotlist = corr_plots_w_titles, 
+                         nrow = 6, rel_heights = c(.3, 1, 1, 1, 1, 1))
 
 # Make y axis label
 Ylab <- ggplot() + geom_text(aes(x = 0, y = 0), 
@@ -68,4 +88,4 @@ plot_grid(corr_panels_y, NULL, Xlab, nrow = 3, rel_heights = c(1.2, 0.02, 0.08))
 # 4 - Save ====
 ggsave('correlograms.tiff', plot = last_plot(), 
        device = 'tiff', path = 'figures/', 
-       dpi = 300, height = 16, width = 40, units = 'cm', bg = 'white')
+       dpi = 300, height = 27, width = 40, units = 'cm', bg = 'white')
