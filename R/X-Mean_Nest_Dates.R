@@ -34,7 +34,7 @@ for(yr_i in 2010:2019) {
 # 3 - Finish cleaning up data ====
 
 # Remove NAs
-foo <- na.omit(nest_diff_pm) %>%
+nest_diff_pm_clean <- na.omit(nest_diff_pm) %>%
   # Factor year
   mutate(Year = factor(Year),
          a_LayDate_z = abs(LayDate_z)) %>%
@@ -42,37 +42,6 @@ foo <- na.omit(nest_diff_pm) %>%
   # fledged values are > 30)
   filter(! Fledglings > 10)
 
-# pp_check - Maybe try tighter prior sd but looks pretty good
-nest_urban_mod <-  brm(a_LayDate_z ~ Urban + (Urban | NestID),
-                       data = foo,
-                       family = lognormal(link = "identity"),
-                       iter = 5000, warmup = 2500, chains = 4, cores = 4, 
-                       prior = c(prior(normal(0,1), class = b)),
-                       control = list(adapt_delta = 0.99, max_treedepth = 20),
-                       backend = 'cmdstanr')
-
-foo_sample <- foo %>%
-  group_by(Urban) %>%
-  slice_sample(n = 50)
-  
-fledg_mod2 <-  brm(Fledglings_z ~ a_LayDate_z*Urban + (a_LayDate_z*Urban | NestID), 
-                  data = foo, 
-                  family = skew_normal(),
-                  iter = 5000, warmup = 2500, chains = 4, cores = 4, 
-                  prior = c(prior(normal(0,1), class = b)),
-                  control = list(adapt_delta = 0.99, max_treedepth = 20),
-                  backend = 'cmdstanr')
-
-
-# Quick scatterplot
-ggplot(foo, aes(x = a_LayDate_z, y = Fledglings_z, 
-                      colour = Urban, fill = Urban)) +
-  geom_jitter(alpha = 0.1) +
-  geom_smooth(method = 'lm') 
-
-ggplot(foo, aes(x = Urban, y = a_LayDate_diff)) + 
-  geom_boxplot()
-
 # 4 - Save for models ====
 
-# saveRDS(nest_yrs_pm, 'data/purple_martin2009_2019.rds')
+saveRDS(nest_diff_pm_clean, 'data/purple_martin2009_2019.rds')
