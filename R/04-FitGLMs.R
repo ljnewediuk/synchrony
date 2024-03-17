@@ -12,10 +12,12 @@ library(tidybayes)
 # 1 - Load data ====
 nest_yrs <- readRDS('data/purple_martin2009_2019.rds')
 
+### REPEAT FOR EACH SPECIES
+
 # 2 - Causal model: urban vs. rural (total effect location on synchrony) ====
 
 nest_urban_mod <-  brm(a_LayDate_z ~ Urban + (Urban | NestID),
-                       data = foo,
+                       data = nest_yrs,
                        family = lognormal(link = "identity"),
                        iter = 5000, warmup = 2500, chains = 4, cores = 4, 
                        prior = c(prior(normal(0,1), class = b)),
@@ -26,7 +28,7 @@ nest_urban_mod <-  brm(a_LayDate_z ~ Urban + (Urban | NestID),
 # 4 - Causal model: Total effect of synchrony/location on fledglings ====
 
 fledg_mod <-  brm(Fledglings_z ~ a_LayDate_z*Urban + (a_LayDate_z*Urban | NestID), 
-                  data = foo, 
+                  data = nest_yrs, 
                   family = skew_normal(),
                   iter = 5000, warmup = 2500, chains = 4, cores = 4, 
                   prior = c(prior(normal(0,1), class = b)),
