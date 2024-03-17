@@ -17,28 +17,29 @@ nestdat <- read.csv('input/nestwatch_download_aug3_2023.csv')
 # https://doi.org/10.3390/rs11101247)
 spatdat <- read_stars('input/urban.tif')
 
-# 2 - Extract distance data for purple martin 2009-2019 ====
+# 2 - Extract distance data for 2010-2019 ====
 
-nest_yrs <- data.frame()
+# Purple Martin
+nest_yrs_pm <- data.frame()
 
-for(yr_i in 2009:2019) {
+for(yr_i in 2010:2019) {
   
-  nest_yr <- nest_mets(nestdat = nestdat, 
-                       spatdat = spatdat, 
-                       yr = yr_i, 
-                       maxdist = Inf,
-                       species = 'Purple Martin') %>%
+  nest_yr_pm <- nest_mets(nestdat = nestdat, 
+                          spatdat = spatdat, 
+                          yr = yr_i, 
+                          maxdist = Inf,
+                          species = 'Purple Martin') %>%
     mutate(spatVar = factor(spatVar, levels = c(1, 0), 
                             labels = c('urban', 'rural')))
   
-  nest_yrs <- rbind(nest_yrs, nest_yr)
+  nest_yrs_pm <- rbind(nest_yrs_pm, nest_yr_pm)
   
 }
 
 # 3 - Finish cleaning up data ====
 
 # Remove NAs
-nest_yrs <- na.omit(nest_yrs) %>%
+nest_yrs_pm <- na.omit(nest_yrs_pm) %>%
   # Add log distance var
   mutate(log_xyDist_m = log(xyDist_m + 0.0001),
          # Factor year
@@ -46,4 +47,4 @@ nest_yrs <- na.omit(nest_yrs) %>%
 
 # 4 - Save for models ====
 
-saveRDS(nest_yrs, 'data/purple_martin2009_2019.rds')
+saveRDS(nest_yrs_pm, 'data/purple_martin2009_2019.rds')
