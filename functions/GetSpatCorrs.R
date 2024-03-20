@@ -12,6 +12,14 @@ spat_corr <- function(nestdat, yr, species, lagdist, distlim = NULL, iterations)
     mutate(LayDate_j = yday(LayDate)) %>%
     filter(! is.na(LayDate_j)) 
   
+  # If too much data, sample birds so >= 1000 pts
+  if(nrow(nests) > 1000) {
+    
+    nests <- nests %>%
+      sample_n(1000)
+    
+  }
+  
   # Compute Great circle distance matrix from nest data
   nestdists <- as.matrix(rdist.earth(x1 = cbind(nests$Latitude, nests$Longitude), 
                                      miles = F, R = NULL))
