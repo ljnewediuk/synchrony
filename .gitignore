@@ -13,6 +13,7 @@
 # Big & unnecessary files and folders
 input/
 figures/
+models/
 
 # Example code in package build process
 *-Ex.R
