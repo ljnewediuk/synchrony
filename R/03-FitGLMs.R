@@ -10,7 +10,7 @@ library(brms)
 library(tidybayes)
 
 # 1 - Load data ====
-nest_yrs <- readRDS('data/urban_birds_data2.rds')
+nest_yrs <- readRDS('data/urban_birds_data.rds')
 
 # Subsample data for smaller test model
 test_dat <- nest_yrs %>% 

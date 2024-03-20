@@ -6,7 +6,7 @@ library(modelr)
 library(cowplot)
 
 # 1 - Load data ====
-nest_yrs <- readRDS('data/urban_birds_data2.rds')
+nest_yrs <- readRDS('data/urban_birds_data.rds')
 
 # 2 - Load models ====
 
