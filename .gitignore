@@ -11,9 +11,9 @@
 .DS_Store
 
 # Big & unnecessary files and folders
-input/
 figures/
-models/
+older_files/
+temp/
 
 # Example code in package build process
 *-Ex.R
