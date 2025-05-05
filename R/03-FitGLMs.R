@@ -1,85 +1,98 @@
+# Statistical analysis
 
-### Bayesian GLMs to test hypotheses:
-###   1 - Being in urban environment disrupts synchrony
-###   2 - Lay date synchrony influences reproductive success
-###   3 - Lay date synchrony affects reproductive success differently for
-###       urban and rural birdss
+# Test if lay dates are more variable within vs. outside cities
 
-library(tidyverse)
-library(brms)
-library(tidybayes)
+# Response: Beta distribution CV lay dates (continuous between 0 and 1)
+# Predictor: Category (urban, rural)
+# Link function: Logit
+# Random intercepts for:
+#   Pair ID (city, species, year)
+#   Species
+#   Year
 
-# 1 - Load data ====
-nest_yrs <- readRDS('data/urban_birds_data.rds')
+# Model:
+# 
+# model <- glmmTMB(
+#   layDateCV ~ urban + (1 | pair_id) + (1 | species) + (1 | yr) + (1 | city),
+#   family = beta_family(link = "logit"),
+#   data = dat
+# )
 
-# Subsample data for smaller test model
-test_dat <- nest_yrs %>% 
-  group_by(Species, Year, Urban) %>%
-  summarize(n())
-  slice_sample(n = 20)
+# Load the data
+lay_data <- readRDS('output/laying_data.rds')
 
-# Fit test model with uncorrelated random intercepts and slopes for species
-test_mod <-  brm(a_LayDate_z ~ Urban + (Urban || Species),
-                 data = test_dat,
-                 family = lognormal(link = "identity"),
-                 iter = 5000, warmup = 2500, chains = 4, cores = 4, 
-                 prior = c(prior(normal(0,1), class = b)),
-                 control = list(adapt_delta = 0.99, max_treedepth = 20),
-                 backend = 'cmdstanr')
+# Fit model (beta regression)
+m <- glmmTMB::glmmTMB(
+  CV ~ Land.Use + (Land.Use | City) + (Land.Use | Year) + (Land.Use | Species.Name),
+  family = glmmTMB::beta_family(link = "logit"),
+  data = lay_data
+)
 
-# Species list
-species_list <- unique(nest_yrs$Species)
+# Summarize
+summary(m)
 
-### REPEAT FOR EACH SPECIES
-for(i in species_list) {
-  
-  # Filter out focal species
-  dat <- nest_yrs %>%
-    filter(Species == i)
-  
-  # If too much data, group by year and environment and sample
-  if(nrow(dat) > 5000) {
-    
-    set.seed(5)
-    dat <- dat %>%
-      group_by(Year, Urban) %>%
-      slice_sample(n = 400)
-    
-  }
-  
-  # 2 - Causal model: urban vs. rural (total effect location on synchrony) ====
-  
-  nest_urban_mod <-  brm(a_LayDate_z ~ Urban + (Urban | NestID),
-                         data = dat,
-                         family = exponential(link = 'log'),
-                         iter = 5000, warmup = 2500, chains = 4, cores = 4, 
-                         prior = c(prior(normal(0,1), class = b)),
-                         control = list(adapt_delta = 0.99, max_treedepth = 20),
-                         backend = 'cmdstanr')
-  
-  
-  # 4 - Causal model: Total effect of synchrony/location on fledglings ====
-  
-  fledg_mod <-  brm(Fledglings_z ~ a_LayDate_z*Urban + (a_LayDate_z*Urban | NestID),
-                    data = dat,
-                    family = skew_normal(),
-                    iter = 5000, warmup = 2500, chains = 4, cores = 4,
-                    prior = c(prior(normal(0,1), class = b)),
-                    control = list(adapt_delta = 0.99, max_treedepth = 20),
-                    backend = 'cmdstanr')
-  
-  # 5 - Save models ====
-  
-  saveRDS(nest_urban_mod, paste0('output/models/', gsub(' ', '_', i), '_urban_mod.rds'))
-  saveRDS(fledg_mod, paste0('output/models/', gsub(' ', '_', i), '_fledg_mod.rds'))
-  
-}
+# Species coefficients
+coef(m)$cond$Species.Name
+
+# Test if variable lay dates reduce fledgling success
+
+# Response: Negative binomial distribution fledgling success
+# Predictor: CV lay dates
+# Link function: Log
+# Random intercepts for:
+#   Pair ID (city, species, year)
+#   Species
+#   Year
+
+# Load the reproductive success data and bind to laying data
+fledg_data <- readRDS('output/fledgling_data.rds') %>%
+  na.omit() %>%
+  right_join(lay_data, relationship = 'many-to-many')
+
+# Fit model (zero-inflated poisson)
+m2 <- glmmTMB::glmmTMB(
+  Young.Fledged ~ CV + (CV | City) + (CV | Year) + (CV | Species.Name),
+  ziformula = ~1,
+  family = poisson,
+  data = fledg_data
+)
+
+# Predict by species
+nd_m2_spp <- expand_grid(
+  CV = seq(from = 0, to = 0.5, by = 0.01),
+  City = NA, 
+  Year = NA, 
+  Species.Name = levels(m2$frame$Species.Name)
+)
+
+pred_m2_spp <- predict(m2, nd_m2_spp, type = 'response')
+
+# Make data frame
+pred_m2_df_spp <- nd_m2_spp %>% 
+  mutate(Fledglings = pred_m2_spp)
+
+# Predict main effects
+nd_m2_fixef <- expand_grid(
+  CV = seq(from = 0, to = 0.5, by = 0.01),
+  City = NA, 
+  Year = NA, 
+  Species.Name = NA
+)
+
+pred_m2_fixef <- predict(m2, nd_m2_fixef, se.fit = T, type = 'response')
+
+# Make data frame
+pred_m2_df_fixef <- nd_m2_fixef %>% 
+  mutate(Fledglings = pred_m2_fixef$fit, 
+         CI = pred_m2_fixef$se.fit)
 
 
+ggplot() +
+  scale_colour_viridis_d() +
+  geom_ribbon(data = pred_m2_df_fixef,
+              aes(x = CV, ymin = Fledglings - CI, ymax = Fledglings + CI), 
+              alpha = 0.5, colour = NA) +
+  geom_line(data = pred_m2_df_fixef, aes(x = CV, y = Fledglings)) +
+  geom_line(data = pred_m2_df_spp, 
+            aes(x = CV, y = Fledglings, colour = Species.Name))
 
-ord_fit_mean <- ordbetareg(formula = Fledglings_z ~ a_LayDate_z*Urban + 
-                             (a_LayDate_z*Urban | NestID), 
-                           data=dat,
-                           control=list(adapt_delta=0.95),
-                           cores=1,chains=1,iter=500,
-                           refresh=0)
