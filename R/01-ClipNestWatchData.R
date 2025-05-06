@@ -4,6 +4,8 @@
 # This script clips the raw NestWatch data to polygons of urban centres and 
 # surrounding rural areas in the US. The result is a list of data frames with
 # data points marked as 'rural' or 'urban'.
+# 
+# WARNING: This took ~36 hours on 8GB macOS Monterey v12.7.3
 
 library(tidyverse)
 library(sf)
