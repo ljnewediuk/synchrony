@@ -1,12 +1,21 @@
 
-### FUNCTION 2 - FOR EACH CITY-YEAR-SPECIES COMBO, CALCULATE CVS ----
+# 02 - Clean the extracted NestWatch data
 
-nest_list <- readRDS('output/nest_data.rds')
+# This script calculates variation in nest laying dates (coefficients of
+# variation in urban/rural surrounding areas) into a new data frame. Another
+# dataset from the extracted data includes reproductive success (fledgling 
+# numbers) for individual nests in each city. The cities are given individual
+# Site IDs in both datasets so they can be joined later.
 
+library(tidyverse)
+library(sf)
+
+# Load function to calculate coefficients of variation
 source('functions/CleanNests.R')
 
-####**** NEED TO TURN THIS INTO A FUNCTION AND MAKE SURE IT'S CALCULATING 
-####**** CV BY INDIVIDUAL YEAR ****#####
+# 1 - Load data ====
+
+nest_list <- readRDS('output/nest_data.rds')
 
 # Apply cleaning function to raw nest data to get CV of lay dates
 lay_dates_list <- lapply(nest_list, function(x) cleanNests(x))
@@ -18,7 +27,7 @@ lay_dates_df <- bind_rows(lay_dates_list) %>%
 # Save the cleaned data
 saveRDS(lay_dates_df, 'output/laying_data.rds')
 
-#### FUNCTION 3 - EXTRACT FLEDGLINGS/CLUTCH SIZES BY INDIVIDUAL ----
+# 2 - Function for cleaning reproductive success data ====
 
 getReproSuccess <- function(nest_i) {
   
@@ -42,5 +51,5 @@ getReproSuccess <- function(nest_i) {
 fledge_df <- lapply(nest_list, function(x) getReproSuccess(x)) %>%
   bind_rows()
 
-# Save the data
+# Save the reproductive success data
 saveRDS(fledge_df, 'output/fledgling_data.rds')
