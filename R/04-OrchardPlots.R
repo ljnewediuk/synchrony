@@ -3,6 +3,7 @@
 
 library(tidyverse)
 library(cowplot)
+library(ggdraw)
 
 # This script pulls the fixed and random effects from the glm models to make
 # a 2-panel orchard plot:
@@ -22,7 +23,18 @@ library(cowplot)
 #           effects points for species, showing all species have the same 
 #           negative response.
 
-# 1 - Load models ====
+# 1 - Load images ====
+
+# Western Bluebird
+wstblu_img <- image_read2('images/western_bluebird.svg', cut_empty_space = T)
+# Mountain Bluebird
+mtnblu_img <- image_read2('images/mountain_bluebird.svg', cut_empty_space = T)
+# Protonothary Warbler
+prwarb_img <- image_read2('images/prothonotary_warbler.svg', cut_empty_space = T)
+# Purple Martin
+prpmrtn_img <- image_read2('images/purple_martin.svg', cut_empty_space = T)
+
+# 2 - Load models ====
 
 m_H1 <- readRDS('output/laying_var_glm.rds')
 m_H2 <- readRDS('output/fledg_success_glm.rds')
@@ -70,7 +82,7 @@ slopes <- bind_rows(slope_H1, slope_H2) %>%
   mutate(term_name = ifelse(term == 'Land.UseUrban', 'Laying date \n variation', 'Fledging \n success'))
 
 # Orchard plot panel
-ggplot() + 
+orch_plot <- ggplot() + 
   geom_hline(yintercept = 0) + 
   geom_jitter(data = r_slopes, aes(x = term_name, y = estimate, col = col_pts, 
                                    alpha = col_pts), size = 4) + 
@@ -86,17 +98,28 @@ ggplot() +
                   lwd = 1, shape = 21, fill = 'white', colour = 'black', stroke = 7) +
   coord_flip() + ylab('slope') +
   theme(panel.background = element_rect(colour = 'black', fill = 'white', linewidth = 1),
-        axis.text.y = element_text(size = 18, colour = 'black'), 
-        axis.text.x = element_text(size = 18, colour = 'black'),
-        axis.title.x = element_text(size = 18, vjust = -3),
+        axis.text.y = element_text(size = 13, colour = 'black'), 
+        axis.text.x = element_text(size = 13, colour = 'black'),
+        axis.title.x = element_text(size = 13, vjust = -3),
         legend.position = 'none',
         panel.grid = element_blank(),
-        plot.margin = unit(c(0.5, 0.5, 1, 1), 'cm'),
+        plot.margin = unit(c(0.25, 0.25, 1, 1), 'cm'),
         panel.spacing = unit(1, 'cm'),
         strip.background = element_rect(fill = 'white'),
-        strip.text = element_text(size = 18, colour = 'black')) +
+        strip.text = element_text(size = 13, colour = 'black')) +
   ylim(-1, 1) +
   ylab('Slope estimate') 
+
+ggdraw() +
+  draw_plot(orch_plot, scale = 0.9, vjust = 0.05) +
+  draw_image(mtnblu_img, scale = 0.15, hjust = -.3, vjust = -.28) +
+  draw_image(wstblu_img, scale = 0.15, hjust = -.3, vjust = -.12) +
+  draw_image(prwarb_img, scale = 0.15, hjust = -.3, vjust = 0.04) +
+  draw_image(prpmrtn_img, scale = 0.15, hjust = -.3, vjust = 0.2)
+
+# Save as tiff
+ggsave('figures/orchard.tiff', plot = last_plot(), bg = 'white',
+       device = 'tiff', dpi = 300, height = 12, width = 18, units = 'cm')
 
 # Save as svg
 ggsave('figures/orchard.svg', plot = last_plot(), bg = 'white',
