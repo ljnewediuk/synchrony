@@ -3,7 +3,7 @@
 
 library(tidyverse)
 library(cowplot)
-library(ggdraw)
+library(ggimage)
 
 # This script pulls the fixed and random effects from the glm models to make
 # a 2-panel orchard plot:
@@ -63,7 +63,7 @@ r_slopes_H2 <- coef(m_H2)$cond$Species.Name %>%
 r_slopes <- bind_rows(r_slopes_H1, r_slopes_H2) %>%
   # Add new column for plot labels
   mutate(term_name = ifelse(term == 'Land.UseUrban', 'Laying date \n variation', 
-                            'Fledging \n success'),
+                            'Fledgling \n number'),
          # Fix point colors
          col_pts = ifelse(is.na(col_pts), 'none', col_pts))
 
@@ -79,15 +79,16 @@ slope_H2 <- broom.mixed::tidy(m_H2, conf.int = T) %>%
 
 # Bind together
 slopes <- bind_rows(slope_H1, slope_H2) %>%
-  mutate(term_name = ifelse(term == 'Land.UseUrban', 'Laying date \n variation', 'Fledging \n success'))
+  mutate(term_name = ifelse(term == 'Land.UseUrban', 'Laying date \n variation', 'Fledgling \n number'))
 
 # Orchard plot panel
 orch_plot <- ggplot() + 
   geom_hline(yintercept = 0) + 
   geom_jitter(data = r_slopes, aes(x = term_name, y = estimate, col = col_pts, 
-                                   alpha = col_pts), size = 4) + 
+                                   alpha = col_pts, size = col_pts)) + 
   scale_alpha_manual(values = c(1, 0.5, 1, 1, 1)) +
-  scale_colour_manual(values = c('#6593F1', 'black', '#B47762', '#F6E44C', '#403F66')) +
+  scale_size_manual(values = c(4, 3, 4, 4, 4)) +
+  scale_colour_manual(values = c('#6593F1', 'grey', '#B47762', '#F6E44C', '#403F66')) +
   theme(axis.title.y = element_blank(),
         legend.title = element_blank()) +
   geom_linerange(data = slopes, 
